@@ -32,6 +32,8 @@ This script fetch user following list and save the result in MongoDB database. T
 
 ## Heroku deployment
 
+Before deploying to heroku, make sure that the script works locally. Also, since we will push `google-credentials.json` into Heroku git repository, make sure you don't push that credentials into public repository like Github or Gitlab.
+
 1. Create a Heroku project.
 2. Clone the project git repository.
 3. Copy this entire folder there.

@@ -20,6 +20,8 @@ class Config:
     GOOGLE_APPLICATION_CREDENTIALS: str
     SPREADSHEET_URL: str
 
+    SYNC_INTERVAL: int
+
     def __init__(self):
         self.TWITTER_CUSTOMER_KEY = getenv('TWITTER_CUSTOMER_KEY')
         self.TWITTER_CUSTOMER_SECRET = getenv('TWITTER_CUSTOMER_SECRET')
