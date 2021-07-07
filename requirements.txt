@@ -23,5 +23,5 @@ six==1.16.0
 telemongo==0.1.0
 Telethon==1.22.0
 toml==0.10.2
-./tweepy-4.0.0a0.whl
+./tweepy-4.0.0a0-py2.py3-none-any.whl
 urllib3==1.26.6
