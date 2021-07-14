@@ -1,8 +1,19 @@
-from src import connect, Config, Telegram
+from src import connect, Config, Telegram, Sheets
 from dotenv import load_dotenv
+from io import StringIO
+import os
 
 if __name__ == '__main__':
-    load_dotenv()
+
+    if 'DYNO' not in os.environ:
+        try:
+            f = open('env.txt', 'r')
+            content = f.read()
+            f.close()
+            load_dotenv(stream=StringIO(content))
+        except IOError:
+            load_dotenv()
+
     config = Config()
 
     connect(config)
@@ -10,3 +21,5 @@ if __name__ == '__main__':
     telegram = Telegram(config)
 
     telegram.setup()
+
+    Sheets(config)
