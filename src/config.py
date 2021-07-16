@@ -21,6 +21,7 @@ class Config:
     SPREADSHEET_URL: str
 
     SYNC_INTERVAL: int
+    SYNC_COUNT: int = 4
 
     def __init__(self):
         self.TWITTER_CUSTOMER_KEY = getenv('TWITTER_CUSTOMER_KEY')
@@ -46,3 +47,8 @@ class Config:
             self.SYNC_INTERVAL = int(getenv('SYNC_INTERVAL', 30))*60
         except ValueError:
             self.SYNC_INTERVAL = 30*60
+
+        try:
+            self.SYNC_COUNT = int(getenv('SYNC_COUNT', 4))
+        except ValueError:
+            self.SYNC_COUNT = 4

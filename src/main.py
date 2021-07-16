@@ -1,7 +1,8 @@
-from typing import Dict, List
+from typing import Dict, List, TypedDict
 from mongoengine.queryset.queryset import QuerySet
-from src import User, Telegram, Config, UserDocument, UserPair, TwitterAPI, Sheets
+from src import User, Telegram, Config, UserDocument, UserPair, TwitterAPI, Sheets, Configuration
 from datetime import date
+from random import sample
 import logging
 
 
@@ -14,6 +15,11 @@ def format_message(user: str, following_changes: List[str]) -> str:
     message = '\n'.join(messages)
 
     return (message[:4090] + '...') if len(message) > 4087 else message
+
+
+class Progress(TypedDict):
+    list: List[str]
+    users: List[UserPair]
 
 
 class App:
@@ -43,6 +49,62 @@ class App:
             UserDocument.users_from_query_set(UserDocument.objects))
 
         self.telegram.initialize()
+
+    def _get_check_progress(self) -> List[str]:
+        progress: QuerySet = Configuration.objects(key="PROGRESS")
+        if progress.count() == 0:
+            Configuration(key="PROGRESS", value="").save()
+            return []
+        elif progress.count() == 1:
+            value: str = progress.first().value
+            if value == "":
+                return []
+            return value.split(',')
+        else:
+            raise Exception('Cannot get progress')
+
+    def _get_user_pair_from_list(self, usernames: List[str]) -> List[UserPair]:
+        result: List[UserPair] = []
+
+        for user in usernames:
+            user_document: UserDocument = UserDocument.objects(
+                username=user).first()
+
+            result.append(
+                UserPair(user=user_document.to_user_class(), document=user_document))
+
+        return result
+
+    def _add_usernames_to_saved_progress(self, usernames: List[str]):
+        old_progress = self._get_check_progress()
+        old_progress.extend(usernames)
+
+        progress: Configuration = Configuration.objects(key="PROGRESS").first()
+        progress.value = ','.join(old_progress)
+        progress.save()
+
+    def _get_users_to_check(self) -> Progress:
+        usernames = UserDocument.get_usernames(UserDocument.objects)
+        progress = self._get_check_progress()
+
+        to_check = list(set(usernames) - set(progress))
+
+        if len(to_check) == 0:
+            document: Configuration = Configuration.objects(
+                key='PROGRESS').first()
+            document.value = ""
+            document.save()
+
+            if len(usernames) < self.config.SYNC_COUNT:
+                return Progress(list=usernames, users=self._get_user_pair_from_list(usernames))
+            else:
+                samples = sample(usernames, self.config.SYNC_COUNT)
+                return Progress(list=samples, users=self._get_user_pair_from_list(samples))
+        elif len(to_check) > self.config.SYNC_COUNT:
+            samples = sample(to_check, self.config.SYNC_COUNT)
+            return Progress(list=samples, users=self._get_user_pair_from_list(samples))
+        else:
+            return Progress(list=to_check, users=self._get_user_pair_from_list(to_check))
 
     def _get_to_sync_users(self, new: List[str], old: List[str]) -> Dict:
         """Compare old and new username list
@@ -85,9 +147,14 @@ class App:
 
         users: List[User] = self.twitter_api.get_users(usernames)
 
+        print('Adding users ...')
+
         for user in users:
+            print(f"Adding {user.username} ...")
             user.get_following(self.twitter_api.client)
             UserDocument.create_from_user_class(user)
+
+        print('Completed adding users')
 
     def _notify_new_following(self, user: User, usernames: List[str]):
         if len(usernames) == 0:
@@ -106,10 +173,10 @@ class App:
             return
         pass
 
-    def _save_database(self):
+    def _save_from_users(self, users: List[UserPair]):
         """Persist following data to user
         """
-        for user in self.users:
+        for user in users:
             if user["user"].changed:
                 user["document"].following = [user.to_dict()
                                               for user in user["user"].following]
@@ -119,7 +186,10 @@ class App:
     def sync(self):
         """Monitor new following and unfollowing then notify to user
         """
-        for pair in self.users:
+        progress: Progress = self._get_users_to_check()
+        print("Checking {}".format(', '.join(progress["list"])))
+
+        for pair in progress["users"]:
             user = pair["user"]
             old = user.following_usernames.copy()
             user.get_following(self.twitter_api.client)
@@ -133,4 +203,5 @@ class App:
                 self._notify_new_following(user, new_following)
                 self._notify_new_unfollowing(user, new_unfollowing)
 
-        self._save_database()
+        self._add_usernames_to_saved_progress(progress["list"])
+        self._save_from_users(progress["users"])

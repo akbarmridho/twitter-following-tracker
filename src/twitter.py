@@ -1,7 +1,10 @@
 from typing import Dict, List
 from tweepy import Client
 from tweepy.client import Response
+from tweepy.errors import TooManyRequests
 from src import Config
+from time import sleep
+from random import randint
 
 
 class User:
@@ -27,25 +30,32 @@ class User:
         """
         self.following: List[User] = []
 
-        complete = False
         payload: Dict = {}
 
-        while not complete:
-            response: Response = client.get_users_following(
-                self.user_id, user_auth=True, max_results=999, **payload)
+        while True:
 
-            twitter_users: List[Dict] = response.data
+            try:
+                response: Response = client.get_users_following(
+                    self.user_id, user_auth=True, max_results=999, **payload)
 
-            for user in twitter_users:
-                self.following.append(
-                    User(user["id"], user["username"], user["name"]))
+                twitter_users: List[Dict] = response.data
 
-            meta: Dict = response.meta
+                for user in twitter_users:
+                    self.following.append(
+                        User(user["id"], user["username"], user["name"]))
 
-            if "next_token" in meta:
-                payload["pagination_token"] = meta["next_token"]
-            else:
-                complete = True
+                meta: Dict = response.meta
+
+                if "next_token" in meta:
+                    payload["pagination_token"] = meta["next_token"]
+                else:
+                    break
+
+                sleep(randint(1, 3))
+
+            except TooManyRequests:
+                print('Request limit reached. Waiting for 20 minutes')
+                sleep(20*60)
 
     @property
     def following_usernames(self) -> List[str]:

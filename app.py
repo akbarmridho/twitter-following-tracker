@@ -34,4 +34,5 @@ if __name__ == '__main__':
         except Exception:
             logging.exception(traceback.format_exc())
 
+        print(f"Waiting {config.SYNC_INTERVAL} seconds for the next run")
         sleep(config.SYNC_INTERVAL)
