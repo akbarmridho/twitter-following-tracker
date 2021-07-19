@@ -179,3 +179,16 @@ class API:
             result.append(User(user["id"], user["username"], user["name"]))
 
         return result
+
+    def get_metrics(self, users: List[str]):
+        response = self.client.get_users(
+            usernames=users, user_auth=True, user_fields=['public_metrics', 'description'])
+        result: List[Dict] = response.data
+
+        metrics = {}
+
+        for user in result:
+            metrics[user["username"]] = {"description": user["description"],
+                                         'followers_count': user["public_metrics"]["followers_count"]}
+
+        return metrics

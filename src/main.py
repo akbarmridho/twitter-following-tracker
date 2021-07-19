@@ -165,8 +165,11 @@ class App:
         logging.info(message)
 
         self.telegram.send_message(message)
+
+        metrics = self.twitter_api.get_metrics(usernames)
+
         self.spreadsheet.append([[f'@{user.username}', f'@{username}',
-                                date.today().strftime('%m/%d/%Y')] for username in usernames])
+                                date.today().strftime('%m/%d/%Y'), metrics[username]["followers_count"], metrics[username]["description"]] for username in usernames])
 
     def _notify_new_unfollowing(self, user: User, usernames: List[str]):
         if len(usernames) == 0:

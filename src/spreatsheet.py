@@ -20,7 +20,8 @@ class Sheets:
         row_count = len(self.worksheet.col_values(1))
 
         if row_count == 0:
-            self.worksheet.insert_row(["user_watched", "following", "date"])
+            self.worksheet.insert_row(
+                ["user_watched", "following", "date", "followers_count", "description"])
             self.next_row = 2
         else:
             self.next_row = row_count + 1
