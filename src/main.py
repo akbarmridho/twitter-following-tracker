@@ -189,10 +189,12 @@ class App:
         progress: Progress = self._get_users_to_check()
         print("Checking {}".format(', '.join(progress["list"])))
 
+        client = self.twitter_api.get_new_client()
+
         for pair in progress["users"]:
             user = pair["user"]
             old = user.following_usernames.copy()
-            user.get_following(self.twitter_api.client)
+            user.get_following(client)
             new = user.following_usernames.copy()
 
             new_following = User.new_following(new, old)

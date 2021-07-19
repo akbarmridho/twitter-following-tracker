@@ -29,6 +29,7 @@ class User:
             client (Client): Tweepy API Client
         """
         self.following: List[User] = []
+        current_client = client
 
         payload: Dict = {}
 
@@ -56,6 +57,8 @@ class User:
             except TooManyRequests:
                 print('Request limit reached. Waiting for 20 minutes')
                 sleep(20*60)
+                current_client = Client(bearer_token=client.bearer_token, consumer_key=client.consumer_key,
+                                        consumer_secret=client.consumer_secret, access_token=client.access_token, access_token_secret=client.access_token_secret)
 
     @property
     def following_usernames(self) -> List[str]:
@@ -147,12 +150,18 @@ class User:
 
 
 class API:
-
     client: Client
+    config: Config
 
     def __init__(self, config: Config):
+        self.config = config
         self.client = Client(config.TWITTER_BEARER_TOKEN, config.TWITTER_CUSTOMER_KEY,
                              config.TWITTER_CUSTOMER_SECRET, config.TWITTER_OAUTH_TOKEN, config.TWITTER_OAUTH_SECRET)
+
+    def get_new_client(self) -> Client:
+        config = self.config
+        return Client(config.TWITTER_BEARER_TOKEN, config.TWITTER_CUSTOMER_KEY,
+                      config.TWITTER_CUSTOMER_SECRET, config.TWITTER_OAUTH_TOKEN, config.TWITTER_OAUTH_SECRET)
 
     def get_users(self, users: List[str]) -> List[User]:
         """Get twitter user ids by username
