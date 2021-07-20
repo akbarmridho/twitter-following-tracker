@@ -5,6 +5,7 @@ from tweepy.errors import TooManyRequests
 from src import Config
 from time import sleep
 from random import randint
+import logging
 
 
 class User:
@@ -36,7 +37,7 @@ class User:
         while True:
 
             try:
-                response: Response = client.get_users_following(
+                response: Response = current_client.get_users_following(
                     self.user_id, user_auth=True, max_results=999, **payload)
 
                 twitter_users: List[Dict] = response.data
@@ -55,7 +56,8 @@ class User:
                 sleep(randint(1, 3))
 
             except TooManyRequests:
-                print('Request limit reached. Waiting for 20 minutes')
+                logging.warning(
+                    'Request limit reached. Waiting for 20 minutes')
                 sleep(20*60)
                 current_client = Client(bearer_token=client.bearer_token, consumer_key=client.consumer_key,
                                         consumer_secret=client.consumer_secret, access_token=client.access_token, access_token_secret=client.access_token_secret)
@@ -180,7 +182,15 @@ class API:
 
         return result
 
-    def get_metrics(self, users: List[str]):
+    def get_metrics(self, users: List[str]) -> Dict[str, Dict]:
+        """Get users description and followers count
+
+        Args:
+            users (List[str]): [description]
+
+        Returns:
+            Dict: [description]
+        """
         response = self.client.get_users(
             usernames=users, user_auth=True, user_fields=['public_metrics', 'description'])
         result: List[Dict] = response.data

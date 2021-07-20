@@ -147,22 +147,20 @@ class App:
 
         users: List[User] = self.twitter_api.get_users(usernames)
 
-        print('Adding users ...')
+        logging.info('Adding users to track ...')
 
         for user in users:
-            print(f"Adding {user.username} ...")
+            logging.info(f"Adding {user.username} ...")
             user.get_following(self.twitter_api.client)
             UserDocument.create_from_user_class(user)
 
-        print('Completed adding users')
+        logging.info('Completed adding users')
 
     def _notify_new_following(self, user: User, usernames: List[str]):
         if len(usernames) == 0:
             return
 
         message = format_message(user.username, usernames)
-
-        logging.info(message)
 
         self.telegram.send_message(message)
 
@@ -190,7 +188,7 @@ class App:
         """Monitor new following and unfollowing then notify to user
         """
         progress: Progress = self._get_users_to_check()
-        print("Checking {}".format(', '.join(progress["list"])))
+        logging.info("Checking {}".format(', '.join(progress["list"])))
 
         client = self.twitter_api.get_new_client()
 
