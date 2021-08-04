@@ -1,7 +1,7 @@
 from typing import Dict, List, TypedDict
 from mongoengine.queryset.queryset import QuerySet
-from src import User, Telegram, Config, UserDocument, UserPair, TwitterAPI, Sheets, Configuration
-from datetime import date
+from src import User, Telegram, Config, UserDocument, UserPair, TwitterAPI, Sheets, Configuration, Airtable, AirtableData
+from datetime import date, datetime, timedelta
 from random import sample
 import logging
 
@@ -23,10 +23,10 @@ class Progress(TypedDict):
 
 
 class App:
-
     twitter_api: TwitterAPI
     telegram: Telegram
     spreadsheet: Sheets
+    airtable: Airtable
     config: Config
     users: List[UserPair] = []
 
@@ -34,7 +34,8 @@ class App:
         self.config = config
         self.twitter_api = TwitterAPI(config)
         self.telegram = Telegram(config)
-        self.spreadsheet = Sheets(config)
+        # self.spreadsheet = Sheets(config)
+        self.airtable = Airtable(config)
 
     def _initialize(self):
         """Initialize the application setup
@@ -160,14 +161,32 @@ class App:
         if len(usernames) == 0:
             return
 
-        message = format_message(user.username, usernames)
-
-        self.telegram.send_message(message)
-
         metrics = self.twitter_api.get_metrics(usernames)
+        today = datetime.now()
 
-        self.spreadsheet.append([[f'@{user.username}', f'@{username}',
-                                date.today().strftime('%m/%d/%Y'), metrics[username]["followers_count"], metrics[username]["description"]] for username in usernames])
+        filtered_data: List[AirtableData] = []
+        for username in usernames:
+            created_at: datetime = metrics[username]['created_at']
+            followers_count: int = metrics[username]['followers_count']
+
+            followers_offset = followers_count <= self.config.OFFSET_FOLLOWERS or self.config.OFFSET_FOLLOWERS <= 0
+            time_offset = created_at > datetime.now() - timedelta(days=30 *
+                                                                  self.config.OFFSET_MONTHS) or self.config.OFFSET_MONTHS <= 0
+
+            if time_offset and followers_offset:
+                filtered_data.append(AirtableData(tracked_user=user.username, followed_user=username,
+                                                  followed_at=today, created_at=created_at, followers_count=metrics[
+                                                      username]['followers_count'],
+                                                  description=metrics[username]["description"]))
+
+        if len(filtered_data) > 0:
+            message = format_message(
+                user.username, [user["followed_user"] for user in filtered_data])
+            self.telegram.send_message(message)
+            self.airtable.save(filtered_data)
+
+        # self.spreadsheet.append([[f'@{user.username}', f'@{username}',
+        #                         date.today().strftime('%m/%d/%Y'), metrics[username]["followers_count"], metrics[username]["description"]] for username in usernames])
 
     def _notify_new_unfollowing(self, user: User, usernames: List[str]):
         if len(usernames) == 0:

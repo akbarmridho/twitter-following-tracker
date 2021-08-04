@@ -22,4 +22,4 @@ if __name__ == '__main__':
 
     telegram.setup()
 
-    Sheets(config)
+    # Sheets(config)

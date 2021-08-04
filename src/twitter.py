@@ -192,13 +192,14 @@ class API:
             Dict: [description]
         """
         response = self.client.get_users(
-            usernames=users, user_auth=True, user_fields=['public_metrics', 'description'])
+            usernames=users, user_auth=True, user_fields=['public_metrics', 'description', 'created_at'])
         result: List[Dict] = response.data
 
         metrics = {}
 
         for user in result:
             metrics[user["username"]] = {"description": user["description"],
-                                         'followers_count': user["public_metrics"]["followers_count"]}
+                                         'followers_count': user["public_metrics"]["followers_count"],
+                                         'created_at': user["created_at"]}
 
         return metrics
