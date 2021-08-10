@@ -164,6 +164,9 @@ class App:
         metrics = self.twitter_api.get_metrics(usernames)
         today = datetime.now()
 
+        message = format_message(user.username, usernames)
+        self.telegram.send_message(message)
+
         filtered_data: List[AirtableData] = []
         for username in usernames:
             created_at: datetime = metrics[username]['created_at']
@@ -180,9 +183,6 @@ class App:
                                                   description=metrics[username]["description"]))
 
         if len(filtered_data) > 0:
-            message = format_message(
-                user.username, [user["followed_user"] for user in filtered_data])
-            self.telegram.send_message(message)
             self.airtable.save(filtered_data)
 
         # self.spreadsheet.append([[f'@{user.username}', f'@{username}',
