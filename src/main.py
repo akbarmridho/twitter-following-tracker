@@ -1,6 +1,6 @@
 from typing import Dict, List, TypedDict
-from mongoengine.queryset.queryset import QuerySet
-from src import User, Telegram, Config, UserDocument, UserPair, TwitterAPI, Sheets, Configuration, Airtable, AirtableData
+from mongoengine.queryset.queryset import QuerySet  # type: ignore
+from src import User, Config, UserDocument, UserPair, Scorer, TwitterAPI, Configuration, Airtable, NewFollowing  # type: ignore
 from datetime import date, datetime, timedelta
 from random import sample
 import logging
@@ -24,18 +24,25 @@ class Progress(TypedDict):
 
 class App:
     twitter_api: TwitterAPI
-    telegram: Telegram
-    spreadsheet: Sheets
+    # telegram: Telegram
+    # spreadsheet: Sheets
     airtable: Airtable
     config: Config
-    users: List[UserPair] = []
+    users: List[UserPair]
+    scorer: Scorer
 
     def __init__(self, config: Config):
         self.config = config
+        self.users = []
         self.twitter_api = TwitterAPI(config)
-        self.telegram = Telegram(config)
+        # self.telegram = Telegram(config)
         # self.spreadsheet = Sheets(config)
         self.airtable = Airtable(config)
+
+        self.config.WATCHED_USERS.extend(
+            [data["username"] for data in self.airtable.get_tracked_users()])
+        self.scorer = Scorer(self.airtable.get_keywords(),
+                             self.airtable.get_tracked_users())
 
     def _initialize(self):
         """Initialize the application setup
@@ -49,7 +56,7 @@ class App:
         self.users.extend(
             UserDocument.users_from_query_set(UserDocument.objects))
 
-        self.telegram.initialize()
+        # self.telegram.initialize()
 
     def _get_check_progress(self) -> List[str]:
         progress: QuerySet = Configuration.objects(key="PROGRESS")
@@ -164,26 +171,47 @@ class App:
         metrics = self.twitter_api.get_metrics(usernames)
         today = datetime.now()
 
-        message = format_message(user.username, usernames)
-        self.telegram.send_message(message)
+        # message = format_message(user.username, usernames)
+        # self.telegram.send_message(message)
 
-        filtered_data: List[AirtableData] = []
+        following_data: List[NewFollowing] = []
+
         for username in usernames:
             created_at: datetime = metrics[username]['created_at']
             followers_count: int = metrics[username]['followers_count']
+            url_points, urls = self.scorer.get_url_point(
+                metrics[username]["urls"])
 
-            followers_offset = followers_count <= self.config.OFFSET_FOLLOWERS or self.config.OFFSET_FOLLOWERS <= 0
-            time_offset = created_at > datetime.now() - timedelta(days=30 *
-                                                                  self.config.OFFSET_MONTHS) or self.config.OFFSET_MONTHS <= 0
+            following_data.append(NewFollowing(
+                tracked_user=user.username,
+                tracked_user_points=self.scorer.get_username_point(
+                    user.username),
+                followed_user=username,
+                followed_at=today,
+                created_at=created_at,
+                created_at_points=self.scorer.get_timedelta_point(created_at),
+                followers_count=followers_count,
+                followers_count_points=self.scorer.get_followers_point(
+                    followers_count),
+                description=metrics[username]["description"],
+                description_points=self.scorer.get_keyword_point(
+                    metrics[username]["description"]),
+                urls=urls,
+                url_points=url_points
+            ))
 
-            if time_offset and followers_offset:
-                filtered_data.append(AirtableData(tracked_user=user.username, followed_user=username,
-                                                  followed_at=today, created_at=created_at, followers_count=metrics[
-                                                      username]['followers_count'],
-                                                  description=metrics[username]["description"]))
+            # followers_offset = followers_count <= self.config.OFFSET_FOLLOWERS or self.config.OFFSET_FOLLOWERS <= 0
+            # time_offset = created_at > datetime.now() - timedelta(days=30 *
+            #                                                       self.config.OFFSET_MONTHS) or self.config.OFFSET_MONTHS <= 0
 
-        if len(filtered_data) > 0:
-            self.airtable.save(filtered_data)
+            # if time_offset and followers_offset:
+            # following_data.append(NewFollowing(tracked_user=user.username, followed_user=username,
+            #                                    followed_at=today, created_at=created_at, followers_count=metrics[
+            #                                        username]['followers_count'],
+            #                                    description=metrics[username]["description"]))
+
+        if len(following_data) > 0:
+            self.airtable.save(following_data)
 
         # self.spreadsheet.append([[f'@{user.username}', f'@{username}',
         #                         date.today().strftime('%m/%d/%Y'), metrics[username]["followers_count"], metrics[username]["description"]] for username in usernames])

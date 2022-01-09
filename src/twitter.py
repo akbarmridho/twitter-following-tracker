@@ -1,7 +1,7 @@
 from typing import Dict, List
-from tweepy import Client
-from tweepy.client import Response
-from tweepy.errors import TooManyRequests
+from tweepy import Client  # type: ignore
+from tweepy.client import Response  # type: ignore
+from tweepy.errors import TooManyRequests  # type: ignore
 from src import Config
 from time import sleep
 from random import randint
@@ -192,14 +192,26 @@ class API:
             Dict: [description]
         """
         response = self.client.get_users(
-            usernames=users, user_auth=True, user_fields=['public_metrics', 'description', 'created_at'])
+            usernames=users, user_auth=True, user_fields=['public_metrics', 'description', 'created_at', "entities"])
         result: List[Dict] = response.data
 
         metrics = {}
 
         for user in result:
+            urls = []
+
+            if "url" in user["entities"] and "urls" in user["entities"]["url"]:
+                for url in user["entities"]["url"]["urls"]:
+                    urls.append(url["display_url"])
+
+            if "description" in user["entities"] and "urls" in user["entities"]["description"]:
+                for url in user["entities"]["description"]["urls"]:
+                    urls.append(url["display_url"])
+
             metrics[user["username"]] = {"description": user["description"],
                                          'followers_count': user["public_metrics"]["followers_count"],
-                                         'created_at': user["created_at"]}
+                                         'created_at': user["created_at"],
+                                         "urls": urls
+                                         }
 
         return metrics

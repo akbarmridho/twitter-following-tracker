@@ -17,15 +17,18 @@ class Config:
 
     WATCHED_USERS: List[str]
 
-    GOOGLE_APPLICATION_CREDENTIALS: str
-    SPREADSHEET_URL: str
+    # GOOGLE_APPLICATION_CREDENTIALS: str
+    # SPREADSHEET_URL: str
 
     AIRTABLE_API_KEY: str
     AIRTABLE_APP_ID: str
-    AIRTABLE_TABLE_NAME: str
+    AIRTABLE_TABLE_LEADERBOARD: str
+    AIRTABLE_TABLE_RESULT: str
+    AIRTABLE_TABLE_TRACKED_USERS: str
+    AIRTABLE_TABLE_KEYWORDS: str
 
-    OFFSET_FOLLOWERS: int = 5000
-    OFFSET_MONTHS: int = 12
+    # OFFSET_FOLLOWERS: int = 5000
+    # OFFSET_MONTHS: int = 12
 
     SYNC_INTERVAL: int
     SYNC_COUNT: int = 4
@@ -40,19 +43,25 @@ class Config:
         self.MONGODB_DB_NAME = getenv('MONGODB_DB_NAME')
         self.MONGODB_DB_HOST = getenv('MONGODB_DB_HOST')
 
-        self.TELEGRAM_API_ID = int(getenv('TELEGRAM_API_ID'))
-        self.TELEGRAM_API_HASH = getenv('TELEGRAM_API_HASH')
+        # self.TELEGRAM_API_ID = int(getenv('TELEGRAM_API_ID'))
+        # self.TELEGRAM_API_HASH = getenv('TELEGRAM_API_HASH')
 
-        self.WATCHED_USERS = [user.strip()
-                              for user in getenv('WATCHED_USERS').split(',')]
+        self.WATCHED_USERS = []
 
-        self.GOOGLE_APPLICATION_CREDENTIALS = getenv(
-            'GOOGLE_APPLICATION_CREDENTIALS', 'google-credentials.json')
-        self.SPREADSHEET_URL = getenv('SPREADSHEET_URL')
+        # self.WATCHED_USERS = [user.strip()
+        #                       for user in getenv('WATCHED_USERS').split(',')]
+
+        # self.GOOGLE_APPLICATION_CREDENTIALS = getenv(
+        #     'GOOGLE_APPLICATION_CREDENTIALS', 'google-credentials.json')
+        # self.SPREADSHEET_URL = getenv('SPREADSHEET_URL')
 
         self.AIRTABLE_API_KEY = getenv('AIRTABLE_API_KEY')
         self.AIRTABLE_APP_ID = getenv('AIRTABLE_APP_ID')
-        self.AIRTABLE_TABLE_NAME = getenv('AIRTABLE_TABLE_NAME')
+        self.AIRTABLE_TABLE_LEADERBOARD = getenv('AIRTABLE_TABLE_LEADERBOARD')
+        self.AIRTABLE_TABLE_RESULT = getenv('AIRTABLE_TABLE_RESULT')
+        self.AIRTABLE_TABLE_TRACKED_USERS = getenv(
+            'AIRTABLE_TABLE_TRACKED_USERS')
+        self.AIRTABLE_TABLE_KEYWORDS = getenv('AIRTABLE_TABLE_KEYWORDS')
 
         try:
             self.SYNC_INTERVAL = int(getenv('SYNC_INTERVAL', 30))*60
@@ -64,12 +73,12 @@ class Config:
         except ValueError:
             self.SYNC_COUNT = 4
 
-        try:
-            self.OFFSET_FOLLOWERS = int(getenv('OFFSET_FOLLOWERS', 5000))
-        except ValueError:
-            self.OFFSET_FOLLOWERS = 5000
+        # try:
+        #     self.OFFSET_FOLLOWERS = int(getenv('OFFSET_FOLLOWERS', 5000))
+        # except ValueError:
+        #     self.OFFSET_FOLLOWERS = 5000
 
-        try:
-            self.OFFSET_MONTHS = int(getenv('OFFSET_MONTHS', 12))
-        except ValueError:
-            self.OFFSET_MONTHS = 12
+        # try:
+        #     self.OFFSET_MONTHS = int(getenv('OFFSET_MONTHS', 12))
+        # except ValueError:
+        #     self.OFFSET_MONTHS = 12

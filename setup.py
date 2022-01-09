@@ -1,4 +1,4 @@
-from src import connect, Config, Telegram, Sheets
+from src import connect, Config
 from dotenv import load_dotenv
 from io import StringIO
 import os
@@ -18,8 +18,8 @@ if __name__ == '__main__':
 
     connect(config)
 
-    telegram = Telegram(config)
+    # telegram = Telegram(config)
 
-    telegram.setup()
+    # telegram.setup()
 
     # Sheets(config)
