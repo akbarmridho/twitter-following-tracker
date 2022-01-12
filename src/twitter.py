@@ -171,14 +171,15 @@ class API:
         Args:
             users (List[str]): List of twitter username
         """
-        response: Response = self.client.get_users(usernames=users)
-
-        twitter_users: List[Dict] = response.data
-
         result: List[User] = []
 
-        for user in twitter_users:
-            result.append(User(user["id"], user["username"], user["name"]))
+        for chunk in [users[i:i+50] for i in range(0, len(users), 50)]:
+            response: Response = self.client.get_users(usernames=chunk)
+
+            twitter_users: List[Dict] = response.data
+
+            for user in twitter_users:
+                result.append(User(user["id"], user["username"], user["name"]))
 
         return result
 
