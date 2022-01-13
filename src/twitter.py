@@ -201,13 +201,16 @@ class API:
         for user in result:
             urls = []
 
-            if "url" in user["entities"] and "urls" in user["entities"]["url"]:
-                for url in user["entities"]["url"]["urls"]:
-                    urls.append(url["display_url"])
+            if user["entities"] or user["entities"] is not None:
+                if "url" in user["entities"]:
+                    if "urls" in user["entities"]["url"]:
+                        for url in user["entities"]["url"]["urls"]:
+                            urls.append(url["display_url"])
 
-            if "description" in user["entities"] and "urls" in user["entities"]["description"]:
-                for url in user["entities"]["description"]["urls"]:
-                    urls.append(url["display_url"])
+                if "description" in user["entities"]:
+                    if "urls" in user["entities"]["description"]:
+                        for url in user["entities"]["description"]["urls"]:
+                            urls.append(url["display_url"])
 
             metrics[user["username"]] = {"description": user["description"],
                                          'followers_count': user["public_metrics"]["followers_count"],

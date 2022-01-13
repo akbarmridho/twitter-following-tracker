@@ -33,7 +33,7 @@ class App:
 
     def __init__(self, config: Config):
         self.config = config
-        self.users = []
+        # self.users = []
         self.twitter_api = TwitterAPI(config)
         # self.telegram = Telegram(config)
         # self.spreadsheet = Sheets(config)
@@ -53,8 +53,8 @@ class App:
         self._delete_users(to_sync["to_delete"])
         self._add_users(to_sync["to_add"])
 
-        self.users.extend(
-            UserDocument.users_from_query_set(UserDocument.objects))
+        # self.users.extend(
+        #     UserDocument.users_from_query_set(UserDocument.objects))
 
         # self.telegram.initialize()
 
