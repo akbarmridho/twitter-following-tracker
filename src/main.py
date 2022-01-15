@@ -211,7 +211,9 @@ class App:
             #                                    description=metrics[username]["description"]))
 
         if len(following_data) > 0:
-            self.airtable.save(following_data)
+            self.airtable.save_leaderboard(following_data)
+            self.airtable.save_raw(following_data)
+            # self.airtable.save(following_data)
 
         # self.spreadsheet.append([[f'@{user.username}', f'@{username}',
         #                         date.today().strftime('%m/%d/%Y'), metrics[username]["followers_count"], metrics[username]["description"]] for username in usernames])

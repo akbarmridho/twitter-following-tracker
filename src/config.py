@@ -33,6 +33,8 @@ class Config:
     SYNC_INTERVAL: int
     SYNC_COUNT: int = 4
 
+    SCORE_OFFSET: int = 0
+
     def __init__(self):
         self.TWITTER_CUSTOMER_KEY = getenv('TWITTER_CUSTOMER_KEY')
         self.TWITTER_CUSTOMER_SECRET = getenv('TWITTER_CUSTOMER_SECRET')
@@ -72,6 +74,8 @@ class Config:
             self.SYNC_COUNT = int(getenv('SYNC_COUNT', 4))
         except ValueError:
             self.SYNC_COUNT = 4
+
+        self.SCORE_OFFSET = int(getenv("SCORE_OFFSET", 0))
 
         # try:
         #     self.OFFSET_FOLLOWERS = int(getenv('OFFSET_FOLLOWERS', 5000))

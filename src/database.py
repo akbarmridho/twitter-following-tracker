@@ -18,6 +18,10 @@ class Configuration(Document):
     value = StringField(required=True)
 
 
+class Leaderboard(Document):
+    username = StringField(required=True)
+
+
 class UserDocument(Document):
     user_id = IntField(required=True)
     username = StringField(requried=True)

@@ -1,5 +1,6 @@
 from typing import Callable, Dict, List, TypedDict, Union
 from src.config import Config
+from src import Leaderboard
 from datetime import datetime
 from urllib.parse import quote
 from time import sleep
@@ -127,11 +128,39 @@ class Airtable:
                 raise Exception(response.text)
             sleep(0.5)
 
+    def _filter_leaderboard(self, data: List[NewFollowing]):
+        new_following: List[str] = []
+        in_leaderboard = [user.username for user in Leaderboard.objects(
+            username__in=[user["followed_user"] for user in data])]
+        filtered: List[NewFollowing] = []
+
+        for user in data:
+            if user["followed_user"] not in new_following and user["followed_user"] not in in_leaderboard:
+                new_following.append(user["followed_user"])
+
+                if user["url_points"]+user["followers_count_points"]+user["created_at_points"]+user["tracked_user_points"]+user["description_points"] >= self.config.SCORE_OFFSET:
+                    filtered.append(user)
+
+        return filtered
+
     def get_tracked_users(self):
         return self._get_table_content(self.config.AIRTABLE_TABLE_TRACKED_USERS)
 
     def get_keywords(self):
         return self._get_table_content(self.config.AIRTABLE_TABLE_KEYWORDS)
+
+    def save_raw(self, data: List[NewFollowing]):
+        self._add_rows(self.config.AIRTABLE_TABLE_RESULT,
+                       data, convert_raw_data)
+
+    def save_leaderboard(self, data: List[NewFollowing]):
+        filtered = self._filter_leaderboard(data)
+
+        for user in filtered:
+            Leaderboard(username=user["followed_user"]).save()
+
+        self._add_rows(self.config.AIRTABLE_TABLE_LEADERBOARD,
+                       data, convert_leaderboard)
 
     def save(self, data: List[NewFollowing]):
         self._add_rows(self.config.AIRTABLE_TABLE_RESULT,
