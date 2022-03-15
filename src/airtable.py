@@ -112,6 +112,38 @@ class Airtable:
 
         return [row["fields"] for row in result if len(row["fields"].keys()) != 0]
 
+    def _get_raw_table_content(self, table: str) -> List[Dict]:
+        result: List[Dict[str, Dict]] = []
+        next_token = ''
+
+        while True:
+
+            if next_token == '':
+                response = requests.get(f"{self.base_url}/{quote(table)}",
+                                        headers={'Authorization': f'Bearer {self.token}'})
+            else:
+                response = requests.get(f"{self.base_url}/{quote(table)}",
+                                        headers={
+                                            'Authorization': f'Bearer {self.token}'},
+                                        params={"offset": next_token}
+                                        )
+
+                sleep(0.5)
+
+            if not response.ok:
+                raise Exception(response.text)
+
+            response_payload = response.json()
+
+            result.extend(response_payload["records"])
+
+            if "offset" in response_payload:
+                next_token = response_payload["offset"]
+            else:
+                break
+
+        return [row for row in result if len(row["fields"].keys()) != 0]
+
     def _add_rows(self, table: str, data: List[NewFollowing], converter: Callable[[NewFollowing], Dict]):
         """Save new list of data to airtable
 
@@ -124,6 +156,14 @@ class Airtable:
         for chunk in [data[i:i + 10] for i in range(0, len(data), 10)]:
             response = requests.post(f"{self.base_url}/{quote(table)}", json={"records": [
                 converter(datum) for datum in chunk]}, headers={'Authorization': f'Bearer {self.token}'})
+            if not response.ok:
+                raise Exception(response.text)
+            sleep(0.5)
+
+    def _delete_rows(self, table: str, data: List[str]):
+        for chunk in [data[i:i + 10] for i in range(0, len(data), 10)]:
+            response = requests.post(f"{self.base_url}/{quote(table)}", json={
+                                     "records": data}, headers={'Authorization': f'Bearer {self.token}'})
             if not response.ok:
                 raise Exception(response.text)
             sleep(0.5)
@@ -160,7 +200,7 @@ class Airtable:
             Leaderboard(username=user["followed_user"]).save()
 
         self._add_rows(self.config.AIRTABLE_TABLE_LEADERBOARD,
-                       data, convert_leaderboard)
+                       filtered, convert_leaderboard)
 
     def save(self, data: List[NewFollowing]):
         self._add_rows(self.config.AIRTABLE_TABLE_RESULT,

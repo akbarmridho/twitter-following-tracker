@@ -5,6 +5,8 @@ from datetime import date, datetime, timedelta
 from random import sample
 import logging
 
+from src.database import Leaderboard
+
 
 def format_message(user: str, following_changes: List[str]) -> str:
     today = date.today().strftime('%m/%d/%Y')
@@ -257,3 +259,34 @@ class App:
 
         self._add_usernames_to_saved_progress(progress["list"])
         self._save_from_users(progress["users"])
+
+    def clean_leaderboard(self):
+        leaderboards = self.airtable._get_raw_table_content(
+            self.config.AIRTABLE_TABLE_LEADERBOARD)
+
+        users: Dict[str, int] = {}
+        to_delete: List = []
+
+        for row in leaderboards:
+            id = row["id"]
+            data = row["fields"]
+
+            if data["Username"] in users.keys():
+                to_delete.append(id)
+            else:
+                users[data["Username"]] = id
+
+        self.airtable._delete_rows(
+            self.config.AIRTABLE_TABLE_LEADERBOARD, to_delete)
+
+        for user in users.keys():
+            Leaderboard(username=user).save()
+
+    def clean_leadd(self):
+        print("get")
+        leaderboards = self.airtable._get_table_content(
+            self.config.AIRTABLE_TABLE_LEADERBOARD)
+        print("cleaning")
+
+        Leaderboard(username__in=[user["Username"]
+                    for user in leaderboards]).delete()
