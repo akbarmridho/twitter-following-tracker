@@ -36,8 +36,8 @@ class Scorer:
         self.accounts = {}
 
         for account in accounts:
-            if account["username"] not in self.accounts:
-                self.accounts[account["username"]] = account["points"]
+            if account["Tracked Users"] not in self.accounts:
+                self.accounts[account["Tracked Users"]] = account["Points"]
 
         self.followers = {
             200: 100,
@@ -85,10 +85,10 @@ class Scorer:
         result: List[Word] = []
 
         for keyword in wordlist:
-            if keyword["word"].lower() not in words:
-                words.add(keyword["word"].lower())
+            if keyword["Keywords"].lower() not in words:
+                words.add(keyword["Keywords"].lower())
                 result.append(
-                    Word(word=keyword["word"].lower(), points=keyword["points"]))
+                    Word(word=keyword["Keywords"].lower(), points=keyword["Points"]))
 
         return result
 

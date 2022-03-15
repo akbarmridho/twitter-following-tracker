@@ -26,14 +26,14 @@ def convert_raw_data(source: NewFollowing) -> Dict:
     return {
         "fields": {
             "Username": source["followed_user"],
-            "Followed At": source["followed_at"].strftime('%Y-%m-%d'),
-            "Account Url": f'https://twitter.com/{source["followed_user"]}',
+            "Following Date": source["followed_at"].strftime('%Y-%m-%d'),
+            "Account URL": f'https://twitter.com/{source["followed_user"]}',
             "Description": source["description"],
             "Description Points": source["description_points"],
             "Followed By": source["tracked_user"],
-            "Followed By Points": source["tracked_user_points"],
-            "Created At": source["created_at"].strftime('%Y-%m-%d'),
-            "Created At Points": source["created_at_points"],
+            "Follower Points": source["tracked_user_points"],
+            "Creation Date": source["created_at"].strftime('%Y-%m-%d'),
+            "Creation Date Points": source["created_at_points"],
             "Followers Count": source["followers_count"],
             "Followers Count Points": source["followers_count_points"],
             "Links": "\n".join(source["urls"]),
@@ -49,8 +49,8 @@ def convert_new_following(source: NewFollowing) -> Dict:
             "Tracked User": source["tracked_user"],
             "Followed User": source["followed_user"],
             "Followed At": source["followed_at"].strftime('%Y-%m-%d'),
-            "Created At": source["created_at"].strftime('%Y-%m-%d'),
-            "Account Url": f'https://twitter.com/{source["followed_user"]}',
+            "Creation Date": source["created_at"].strftime('%Y-%m-%d'),
+            "Account URL": f'https://twitter.com/{source["followed_user"]}',
             "Follower Count": source["followers_count"],
             "Description": source["description"]
         }
@@ -63,8 +63,8 @@ def convert_leaderboard(source: NewFollowing) -> Dict:
             "Username": source["followed_user"],
             "Description": source["description"],
             "Score": source["url_points"]+source["followers_count_points"]+source["created_at_points"]+source["tracked_user_points"]+source["description_points"],
-            "Created At": source["created_at"].strftime('%Y-%m-%d'),
-            "Account Url": f'https://twitter.com/{source["followed_user"]}',
+            "Creation Date": source["created_at"].strftime('%Y-%m-%d'),
+            "Account URL": f'https://twitter.com/{source["followed_user"]}',
             "Links": "\n".join(source["urls"])
         }
     }

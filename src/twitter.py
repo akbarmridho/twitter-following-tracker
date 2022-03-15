@@ -192,9 +192,12 @@ class API:
         Returns:
             Dict: [description]
         """
-        response = self.client.get_users(
-            usernames=users, user_auth=True, user_fields=['public_metrics', 'description', 'created_at', "entities"])
-        result: List[Dict] = response.data
+        result: List[Dict] = []
+
+        for chunk in [users[i:i+50] for i in range(0, len(users), 50)]:
+            response = self.client.get_users(
+                usernames=chunk, user_auth=True, user_fields=['public_metrics', 'description', 'created_at', "entities"])
+            result.extend(response.data)
 
         metrics = {}
 
@@ -205,12 +208,14 @@ class API:
                 if "url" in user["entities"]:
                     if "urls" in user["entities"]["url"]:
                         for url in user["entities"]["url"]["urls"]:
-                            urls.append(url["display_url"])
+                            if "display_url" in url:
+                                urls.append(url["display_url"])
 
                 if "description" in user["entities"]:
                     if "urls" in user["entities"]["description"]:
                         for url in user["entities"]["description"]["urls"]:
-                            urls.append(url["display_url"])
+                            if "display_url" in url:
+                                urls.append(url["display_url"])
 
             metrics[user["username"]] = {"description": user["description"],
                                          'followers_count': user["public_metrics"]["followers_count"],

@@ -42,7 +42,7 @@ class App:
         self.airtable = Airtable(config)
 
         self.config.WATCHED_USERS.extend(
-            [data["username"] for data in self.airtable.get_tracked_users()])
+            [data["Tracked Users"] for data in self.airtable.get_tracked_users()])
         self.scorer = Scorer(self.airtable.get_keywords(),
                              self.airtable.get_tracked_users())
 
@@ -50,7 +50,7 @@ class App:
         """Initialize the application setup
         """
         to_sync = self._get_to_sync_users(
-            self.config.WATCHED_USERS, UserDocument.get_usernames(UserDocument.objects))
+            self.config.WATCHED_USERS, UserDocument.get_usernames(UserDocument.objects.only("username").select_related()))
 
         self._delete_users(to_sync["to_delete"])
         self._add_users(to_sync["to_add"])
@@ -263,11 +263,18 @@ class App:
     def clean_leaderboard(self):
         leaderboards = self.airtable._get_raw_table_content(
             self.config.AIRTABLE_TABLE_LEADERBOARD)
+        usr = []
+        f_lead = []
+
+        for lead in leaderboards:
+            if lead["fields"]["Username"] not in usr:
+                usr.append(lead["fields"]["Username"])
+                f_lead.append(lead)
 
         users: Dict[str, int] = {}
         to_delete: List = []
 
-        for row in leaderboards:
+        for row in f_lead:
             id = row["id"]
             data = row["fields"]
 
@@ -288,5 +295,21 @@ class App:
             self.config.AIRTABLE_TABLE_LEADERBOARD)
         print("cleaning")
 
-        Leaderboard(username__in=[user["Username"]
-                    for user in leaderboards]).delete()
+        obj: QuerySet = Leaderboard.objects(username__nin=[user["Username"]
+                                                           for user in leaderboards])
+        print(obj.count())
+        obj.delete()
+
+    def equality(self):
+        leaderboards = self.airtable._get_table_content(
+            self.config.AIRTABLE_TABLE_LEADERBOARD)
+
+        leadr = Leaderboard.objects
+
+        airtable = set([user["Username"] for user in leaderboards])
+        mongo = set([user.username for user in leadr])
+
+        print(len(airtable))
+        print(len(mongo))
+
+        print(len(airtable & mongo))
