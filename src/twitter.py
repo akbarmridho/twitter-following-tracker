@@ -1,3 +1,4 @@
+from distutils.command.config import config
 from typing import Dict, List
 from tweepy import Client  # type: ignore
 from tweepy.client import Response  # type: ignore
@@ -5,6 +6,8 @@ from tweepy.errors import TooManyRequests  # type: ignore
 from src import Config
 from time import sleep
 from random import randint
+from datetime import datetime, timedelta
+import random
 import logging
 
 
@@ -183,6 +186,50 @@ class API:
 
         return result
 
+    def get_search(self, keywords: List[str]):
+        query = "("
+        query += ' OR '.join([f'"{word}"'for word in keywords])
+        query += ") " + \
+            random.sample(["has:links", "has:mentions", "has:media", ""], 1)[0]
+
+        payload = {
+            "user_auth": True,
+            "start_time": datetime.utcnow()-timedelta(hours=6),
+            "max_results": 100,
+            "expansions": ["author_id", "entities.mentions.username"],
+            "user_fields": ["created_at", "description",
+                            "url", "public_metrics", "username", "entities"]
+        }
+
+        result: List[Dict] = []
+
+        client = self.get_new_client()
+        counter = 0
+
+        while counter <= 3:
+            try:
+                response = client.search_recent_tweets(
+                    query,
+                    **payload
+                )
+
+                meta = response.meta
+
+                if "next_token" in meta:
+                    payload["next_token"] = meta["next_token"]
+                else:
+                    break
+
+                result.extend(response.includes["users"])
+                counter += 1
+
+            except TooManyRequests:
+                logging.info("Tweet crawl limit reached. Skipping")
+                break
+
+        return [
+            item for item in result if item["public_metrics"]["tweet_count"] <= 5]
+
     def get_metrics(self, users: List[str]) -> Dict[str, Dict]:
         """Get users description and followers count
 
@@ -199,12 +246,15 @@ class API:
                 usernames=chunk, user_auth=True, user_fields=['public_metrics', 'description', 'created_at', "entities"])
             result.extend(response.data)
 
+        return self._get_metrics_from_user(result)
+
+    def _get_metrics_from_user(self, users: List[Dict]):
         metrics = {}
 
-        for user in result:
+        for user in users:
             urls = []
 
-            if user["entities"] or user["entities"] is not None:
+            if "entities" in user and (user["entities"] or user["entities"] is not None):
                 if "url" in user["entities"]:
                     if "urls" in user["entities"]["url"]:
                         for url in user["entities"]["url"]["urls"]:

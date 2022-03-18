@@ -1,11 +1,11 @@
 from typing import Dict, List, TypedDict
 from mongoengine.queryset.queryset import QuerySet  # type: ignore
-from src import User, Config, UserDocument, UserPair, Scorer, TwitterAPI, Configuration, Airtable, NewFollowing  # type: ignore
+from src import User, Config, UserDocument, UserPair, Scorer, TwitterAPI, Configuration, Airtable, NewFollowing, get_users_from_timeline  # type: ignore
 from datetime import date, datetime, timedelta
+from src.database import Leaderboard
 from random import sample
 import logging
-
-from src.database import Leaderboard
+import random
 
 
 def format_message(user: str, following_changes: List[str]) -> str:
@@ -32,6 +32,7 @@ class App:
     config: Config
     users: List[UserPair]
     scorer: Scorer
+    keywords: List[Dict]
 
     def __init__(self, config: Config):
         self.config = config
@@ -40,10 +41,11 @@ class App:
         # self.telegram = Telegram(config)
         # self.spreadsheet = Sheets(config)
         self.airtable = Airtable(config)
+        self.keywords = self.airtable.get_keywords()
 
         self.config.WATCHED_USERS.extend(
             [data["Tracked Users"] for data in self.airtable.get_tracked_users()])
-        self.scorer = Scorer(self.airtable.get_keywords(),
+        self.scorer = Scorer(self.keywords,
                              self.airtable.get_tracked_users())
 
     def _initialize(self):
@@ -220,6 +222,44 @@ class App:
         # self.spreadsheet.append([[f'@{user.username}', f'@{username}',
         #                         date.today().strftime('%m/%d/%Y'), metrics[username]["followers_count"], metrics[username]["description"]] for username in usernames])
 
+    def _notify_new_following_twint(self, users: List[Dict]):
+        if len(users) == 0:
+            return
+
+        metrics = self.twitter_api.get_metrics(
+            [user["username"] for user in users])
+        today = datetime.now()
+
+        following_data: List[NewFollowing] = []
+
+        for user in users:
+            username = user["username"]
+            created_at: datetime = metrics[username]['created_at']
+            followers_count: int = metrics[username]['followers_count']
+            url_points, urls = self.scorer.get_url_point(
+                metrics[username]["urls"])
+
+            following_data.append(NewFollowing(
+                tracked_user="TIMELINE",
+                tracked_user_points=0,
+                followed_user=username,
+                followed_at=today,
+                created_at=created_at,
+                created_at_points=self.scorer.get_timedelta_point(created_at),
+                followers_count=followers_count,
+                followers_count_points=self.scorer.get_followers_point(
+                    followers_count),
+                description=metrics[username]["description"],
+                description_points=self.scorer.get_keyword_point(
+                    metrics[username]["description"]),
+                urls=urls,
+                url_points=url_points
+            ))
+
+        if len(following_data) > 0:
+            self.airtable.save_leaderboard(following_data)
+            self.airtable.save_raw(following_data)
+
     def _notify_new_unfollowing(self, user: User, usernames: List[str]):
         if len(usernames) == 0:
             return
@@ -238,6 +278,11 @@ class App:
     def sync(self):
         """Monitor new following and unfollowing then notify to user
         """
+
+        users_timeline = self.twitter_api.get_search([word["Keywords"] for word in random.sample(
+            self.keywords, 6 if len(self.keywords) > 6 else len(self.keywords))])
+        self._notify_new_following_twint(users_timeline)
+
         progress: Progress = self._get_users_to_check()
         logging.info("Checking {}".format(', '.join(progress["list"])))
 
