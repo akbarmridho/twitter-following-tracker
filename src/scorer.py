@@ -22,7 +22,7 @@ class Scorer:
     creation_date: Dict[int, int]
     url_blacklist: List[str]
 
-    def __init__(self, wordlist: List[Word], accounts: List[Account]):
+    def __init__(self, wordlist: List[Dict], accounts: List[Dict]):
         sanitized = self._sanitize(wordlist)
         self.keywords = {}
 
@@ -80,7 +80,7 @@ class Scorer:
             "fb.me", "facebook", "twitter", "instagram", "youtube", "wa.me", "whatsapp", "linkedin", "tiktok", "fb.com"
         ]
 
-    def _sanitize(self, wordlist: List[Word]):
+    def _sanitize(self, wordlist: List[Dict]):
         words: Set[str] = set()
         result: List[Word] = []
 

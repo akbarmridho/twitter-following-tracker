@@ -1,8 +1,7 @@
 from typing import Dict, List, TypedDict
 from mongoengine.queryset.queryset import QuerySet  # type: ignore
-from src import User, Config, UserDocument, UserPair, Scorer, TwitterAPI, Configuration, Airtable, NewFollowing, get_users_from_timeline  # type: ignore
-from datetime import date, datetime, timedelta
-from src.database import Leaderboard
+from src import User, Config, UserDocument, UserPair, Scorer, TwitterAPI, Configuration, Airtable, NewFollowing  # type: ignore
+from datetime import date, datetime
 from random import sample
 import logging
 import random
@@ -26,8 +25,6 @@ class Progress(TypedDict):
 
 class App:
     twitter_api: TwitterAPI
-    # telegram: Telegram
-    # spreadsheet: Sheets
     airtable: Airtable
     config: Config
     users: List[UserPair]
@@ -36,10 +33,7 @@ class App:
 
     def __init__(self, config: Config):
         self.config = config
-        # self.users = []
         self.twitter_api = TwitterAPI(config)
-        # self.telegram = Telegram(config)
-        # self.spreadsheet = Sheets(config)
         self.airtable = Airtable(config)
         self.keywords = self.airtable.get_keywords()
 
@@ -56,11 +50,6 @@ class App:
 
         self._delete_users(to_sync["to_delete"])
         self._add_users(to_sync["to_add"])
-
-        # self.users.extend(
-        #     UserDocument.users_from_query_set(UserDocument.objects))
-
-        # self.telegram.initialize()
 
     def _get_check_progress(self) -> List[str]:
         progress: QuerySet = Configuration.objects(key="PROGRESS")
@@ -175,9 +164,6 @@ class App:
         metrics = self.twitter_api.get_metrics(usernames)
         today = datetime.now()
 
-        # message = format_message(user.username, usernames)
-        # self.telegram.send_message(message)
-
         following_data: List[NewFollowing] = []
 
         for username in usernames:
@@ -204,25 +190,11 @@ class App:
                 url_points=url_points
             ))
 
-            # followers_offset = followers_count <= self.config.OFFSET_FOLLOWERS or self.config.OFFSET_FOLLOWERS <= 0
-            # time_offset = created_at > datetime.now() - timedelta(days=30 *
-            #                                                       self.config.OFFSET_MONTHS) or self.config.OFFSET_MONTHS <= 0
-
-            # if time_offset and followers_offset:
-            # following_data.append(NewFollowing(tracked_user=user.username, followed_user=username,
-            #                                    followed_at=today, created_at=created_at, followers_count=metrics[
-            #                                        username]['followers_count'],
-            #                                    description=metrics[username]["description"]))
-
         if len(following_data) > 0:
             self.airtable.save_leaderboard(following_data)
             self.airtable.save_raw(following_data)
-            # self.airtable.save(following_data)
 
-        # self.spreadsheet.append([[f'@{user.username}', f'@{username}',
-        #                         date.today().strftime('%m/%d/%Y'), metrics[username]["followers_count"], metrics[username]["description"]] for username in usernames])
-
-    def _notify_new_following_twint(self, users: List[Dict]):
+    def _notify_new_following_from_timeline(self, users: List[Dict]):
         if len(users) == 0:
             return
 
@@ -281,7 +253,7 @@ class App:
 
         users_timeline = self.twitter_api.get_search([word["Keywords"] for word in random.sample(
             self.keywords, 6 if len(self.keywords) > 6 else len(self.keywords))])
-        self._notify_new_following_twint(users_timeline)
+        self._notify_new_following_from_timeline(users_timeline)
 
         progress: Progress = self._get_users_to_check()
         logging.info("Checking {}".format(', '.join(progress["list"])))
@@ -304,57 +276,3 @@ class App:
 
         self._add_usernames_to_saved_progress(progress["list"])
         self._save_from_users(progress["users"])
-
-    def clean_leaderboard(self):
-        leaderboards = self.airtable._get_raw_table_content(
-            self.config.AIRTABLE_TABLE_LEADERBOARD)
-        usr = []
-        f_lead = []
-
-        for lead in leaderboards:
-            if lead["fields"]["Username"] not in usr:
-                usr.append(lead["fields"]["Username"])
-                f_lead.append(lead)
-
-        users: Dict[str, int] = {}
-        to_delete: List = []
-
-        for row in f_lead:
-            id = row["id"]
-            data = row["fields"]
-
-            if data["Username"] in users.keys():
-                to_delete.append(id)
-            else:
-                users[data["Username"]] = id
-
-        self.airtable._delete_rows(
-            self.config.AIRTABLE_TABLE_LEADERBOARD, to_delete)
-
-        for user in users.keys():
-            Leaderboard(username=user).save()
-
-    def clean_leadd(self):
-        print("get")
-        leaderboards = self.airtable._get_table_content(
-            self.config.AIRTABLE_TABLE_LEADERBOARD)
-        print("cleaning")
-
-        obj: QuerySet = Leaderboard.objects(username__nin=[user["Username"]
-                                                           for user in leaderboards])
-        print(obj.count())
-        obj.delete()
-
-    def equality(self):
-        leaderboards = self.airtable._get_table_content(
-            self.config.AIRTABLE_TABLE_LEADERBOARD)
-
-        leadr = Leaderboard.objects
-
-        airtable = set([user["Username"] for user in leaderboards])
-        mongo = set([user.username for user in leadr])
-
-        print(len(airtable))
-        print(len(mongo))
-
-        print(len(airtable & mongo))

@@ -32,8 +32,6 @@ if __name__ == '__main__':
     app = App(config)
 
     app._initialize()
-    # app.clean_leaderboard()
-    # app.clean_leadd()
 
     while True:
         try:

@@ -1,4 +1,4 @@
-from typing import Callable, Dict, List, TypedDict, Union
+from typing import Callable, Dict, List, TypedDict
 from src.config import Config
 from src import Leaderboard
 from datetime import datetime
