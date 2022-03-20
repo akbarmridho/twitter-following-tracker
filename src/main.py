@@ -85,7 +85,8 @@ class App:
         progress.save()
 
     def _get_users_to_check(self) -> Progress:
-        usernames = UserDocument.get_usernames(UserDocument.objects)
+        usernames = UserDocument.get_usernames(
+            UserDocument.objects.only("username").select_related())
         progress = self._get_check_progress()
 
         to_check = list(set(usernames) - set(progress))
@@ -231,6 +232,8 @@ class App:
         if len(following_data) > 0:
             self.airtable.save_leaderboard(following_data)
             self.airtable.save_raw(following_data)
+            logging.info(
+                f"Added {len(following_data)} users from tweet search")
 
     def _notify_new_unfollowing(self, user: User, usernames: List[str]):
         if len(usernames) == 0:
