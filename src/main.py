@@ -254,9 +254,9 @@ class App:
         """Monitor new following and unfollowing then notify to user
         """
 
-        users_timeline = self.twitter_api.get_search([word["Keywords"] for word in random.sample(
-            self.keywords, 6 if len(self.keywords) > 6 else len(self.keywords))])
-        self._notify_new_following_from_timeline(users_timeline)
+        # users_timeline = self.twitter_api.get_search([word["Keywords"] for word in random.sample(
+        #     self.keywords, 6 if len(self.keywords) > 6 else len(self.keywords))])
+        # self._notify_new_following_from_timeline(users_timeline)
 
         progress: Progress = self._get_users_to_check()
         logging.info("Checking {}".format(', '.join(progress["list"])))
